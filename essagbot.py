@@ -797,10 +797,26 @@ biolog = {
         "description": "N2 (В КАПСУЛАХ)\nСпосіб застосування: для дорослих 1 капсула на добу запиваючи достатньою кількістю води. Застосовується в якості харчової добавки. Не перевищуйте денної дози. Має капсулу рослинного походження. Вміст продукту вказано в таблиці інгредієнтів продукту. Не є лікарським засобом. Відповідає вимогам \"Кодексу Харчових Продуктів\" Туреччини. Реєстраційний номер: TR-20-K-023284. Номер дозволу на виробництво продукту: 015389-05.12.2022."
     },
 }
-vidguki = {
-    "zeytin": {
-        "photo": "",
-        "description": ""
+feedback = {
+    "1": {
+        "video_url": "https://youtu.be/bvdYDv-As8s?si=n7p04h4lW-7KO-j5",
+        "description": "Відгук про антижир"
+    },
+    "2": {
+        "video_url": "https://youtu.be/p6aAB-xRuj0?si=JpQLGoLJ-0a1__pN",
+        "description": "Відгук про помаду і засіб для манжетів"
+    },
+    "3": {
+        "video_url": "https://www.youtube.com/watch?v=GIhHYMZahtU",
+        "description": "Відгук про миючі засоби"
+    },
+    "4": {
+        "video_url": "https://youtu.be/cPJ3U4y3UEA",
+        "description": "Відгук про чистящі засоби"
+    },
+    "5": {
+        "video_url": "https://youtu.be/coYGnDO_E-s",
+        "description": "Відгук про стіральний порошок"
     },
 }
 viewed_products = {}  
@@ -878,14 +894,21 @@ def callback_handler(call):
         viewed_products.clear()
         show_products(call.message.chat.id, biolog)
     elif call.data == 'events':
-        bot.send_message(call.message.chat.id, 'Наразі ніяких заходів не планується.', reply_markup=markup)
+        bot.send_message(call.message.chat.id, 'Всі заходи потрібно уточнювати в консультанта, зв\'яжіться з консультантом по вказаному номеру в розділі контакти.', reply_markup=markup)
         panel(call.message)  
+    elif call.data == 'workshops':
+        bot.send_message(call.message.chat.id, 'Для участі в безкоштовному майстер класі по догляду за обличчям, Вам потрібно зв\'язатися з консультантом по вказаному номеру телефону в розділі контакти.', reply_markup=markup)
+        panel(call.message) 
     elif call.data == 'about':
         bot.send_message(call.message.chat.id, 'Компанія Ersag – це турецька компанія, яка займається виробництвом та продажем екологічної продукції. Заснована у 2002 році в місті Денизлі, компанія швидко вийшла на міжнародний ринок і на сьогоднішній день представлена   в понад 20 країнах світу, в тому числі в Україні.\n\nПродукція Ersag виготовляється з натуральних інгредієнтів, без використання шкідливих хімічних речовин. Компанія має власні виробничі потужності, де вона контролює весь процес виробництва, від вибору сировини до упаковки готової продукції.\n\nКомпанія Ersag дотримується принципів соціальної відповідальності. Вона підтримує проекти з охорони навколишнього середовища, а також допомагає людям, які потребують допомоги.\n\nВ Україні компанія Ersag представлена   з 2013 року. На сьогоднішній день в Україні працює понад 2000 дистриб\'юторів Ersag.\n\nКомпанія Ersag пропонує своїм клієнтам широкий асортимент екологічної продукції, а також можливість заробляти гроші, ставши дистриб\'ютором компанії.', reply_markup=markup)
         panel(call.message)
     elif call.data == 'contacts':
         bot.send_message(call.message.chat.id, 'Номер телефону для консультацій та замовлень: +380971269770\nРеєстраційний номер: 5098807', reply_markup=markup)
         panel(call.message)
+    elif call.data == 'feedback':
+        bot.last_selected_category = feedback
+        viewed_products.clear()
+        show_feedback(call.message.chat.id, feedback)
     elif call.data == 'exit':
         panel(call.message)
     
@@ -903,29 +926,58 @@ def show_products(chat_id, products):
     
     product = products[next_product]
     markup = types.ReplyKeyboardMarkup(row_width=2)
-    markup.add(types.KeyboardButton('Вийти'), types.KeyboardButton('Наступний'))
+    markup.add(types.KeyboardButton('Вийти з каталогу'), types.KeyboardButton('Наступний засіб'))
     bot.send_photo(chat_id, product["photo"])
     bot.send_message(chat_id, f"{product['description']}", reply_markup=markup)
     
     viewed_products[next_product] = True  
+def show_feedback(chat_id, feedback):
+    global viewed_products
 
+    if len(viewed_products) >= len(feedback):
+        bot.send_message(chat_id, "Ви переглянули всі відгуки")
+        return
+    
+    remaining_feedback = set(feedback.keys()) - set(viewed_products.keys())
+    next_feedback = list(remaining_feedback)[0]
+    
+    current_feedback = feedback[next_feedback]
+    markup = types.ReplyKeyboardMarkup(row_width=2)
+    markup.add(types.KeyboardButton('Вийти з каталогу відгуків'), types.KeyboardButton('Наступний відгук'))
+    video_url = current_feedback["video_url"]
+    video_path = show_video(chat_id, video_url)
+    
+    bot.send_video(chat_id, open(video_path, 'rb'))
+    bot.send_message(chat_id, f"{current_feedback['description']}", reply_markup=markup)
+
+    
+    viewed_products[next_feedback] = True  
 @bot.message_handler(func=lambda message: True)
 
 def message_handler(message):
     global viewed_products
     chat_id = message.chat.id
     
-    if message.text == 'Наступний':
+    if message.text == 'Наступний засіб':
         if hasattr(bot, 'last_selected_category'):  
             show_products(chat_id, bot.last_selected_category)
         else:
             bot.send_message(chat_id, 'Будь ласка, спочатку оберіть категорію.')
     
-    elif message.text == 'Вийти':
+    elif message.text == 'Вийти з каталогу':
         hide_panel_markup = types.ReplyKeyboardRemove()
-        bot.send_message(chat_id, "Ви залишили категорію", reply_markup=hide_panel_markup)
+        bot.send_message(chat_id, "Ви залишили каталог", reply_markup=hide_panel_markup)
         viewed_products = {} 
         panel(message)
-
+    elif message.text == 'Наступний відгук':
+        if hasattr(bot, 'last_selected_category'):  
+            show_feedback(chat_id, bot.last_selected_category)
+        else:
+            bot.send_message(chat_id, 'Будь ласка, спочатку оберіть категорію.')
+    elif message.text == 'Вийти з каталогу відгуків':
+        hide_panel_markup = types.ReplyKeyboardRemove()
+        bot.send_message(chat_id, "Ви залишили розділ відгуки", reply_markup=hide_panel_markup)
+        viewed_products = {} 
+        panel(message)
 
 bot.polling(non_stop=True)
